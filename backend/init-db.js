@@ -6,7 +6,7 @@ async function initializeDatabase() {
   try {
     console.log('🗄️  Initializing database...');
     
-    const schemaPath = path.join(__dirname, '..', 'schema.sql');
+    const schemaPath = path.join(__dirname, 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
     
     await pool.query(schema);
