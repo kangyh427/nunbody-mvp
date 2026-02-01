@@ -2,40 +2,44 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/user');
-const analysisRoutes = require('./routes/analysis');
-const uploadRoutes = require('./routes/upload');
-const initializeDatabase = require('./init-db');
+const photoRoutes = require('./routes/photos');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+
+// CORS 설정 - Vercel 프론트엔드 허용
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://nunbody-frontend-6q24.vercel.app'
+];
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
+  origin: function(origin, callback) {
+    // origin이 없는 경우(모바일 앱, Postman 등)도 허용
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'CORS policy does not allow access from the specified origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   credentials: true
 }));
+
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
 
-app.use('/api/auth', authRoutes);
-const photosRouter = require('./routes/photos');
-app.use('/api/photos', photosRouter);
-app.use('/api/user', userRoutes);
-app.use('/api/analysis', analysisRoutes);
-app.use('/api/upload', uploadRoutes);
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: '눈바디 API is running' });
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.json({ message: 'Nunbody API is running!' });
 });
 
-initializeDatabase()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-    });
-  })
-  .catch((error) => {
-    console.error('Failed to initialize database:', error);
-    process.exit(1);
-  });
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/photos', photoRoutes);
+
+const PORT = process.env.PORT || 3001;
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`Allowed origins: ${allowedOrigins.join(', ')}`);
+});
