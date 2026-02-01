@@ -18,6 +18,8 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
 app.use('/api/auth', authRoutes);
+const photosRouter = require('./routes/photos');
+app.use('/api/photos', photosRouter);
 app.use('/api/user', userRoutes);
 app.use('/api/analysis', analysisRoutes);
 app.use('/api/upload', uploadRoutes);
