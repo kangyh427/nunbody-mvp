@@ -9,7 +9,7 @@ const app = express();
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true);
-    if (origin.includes('localhost') || origin.includes('vercel.app')) {
+    if (origin.includes('localhost') || origin.includes('vercel.app') || origin.includes('netlify.app')) {
       return callback(null, true);
     }
     callback(null, false);
@@ -30,5 +30,5 @@ const PORT = process.env.PORT || 3001;
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
-  console.log(`CORS enabled for localhost and vercel.app domains`);
+  console.log('CORS enabled for localhost, vercel.app, and netlify.app domains');
 });
