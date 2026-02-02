@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { query } = require('../config/database');
+const pool = require('../config/database');
 
 /**
  * Verify JWT token and attach user to request
@@ -17,9 +17,9 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Verify user still exists
-    const result = await query(
+    const result = await pool.query(
       'SELECT id, email, name, created_at FROM users WHERE id = $1',
       [decoded.userId]
     );
@@ -46,7 +46,7 @@ const authenticateToken = async (req, res, next) => {
         error: { message: 'Token expired' }
       });
     }
-    
+
     console.error('Auth middleware error:', error);
     return res.status(500).json({
       success: false,
