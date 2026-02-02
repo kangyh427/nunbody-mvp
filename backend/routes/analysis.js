@@ -33,7 +33,7 @@ router.post('/analyze', async (req, res) => {
 
     // Gemini Vision 모델 설정 (JSON 응답 강제)
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-pro',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: "application/json"
       }
@@ -202,7 +202,7 @@ router.post('/compare', async (req, res) => {
 
     // Gemini Vision 모델 설정 (JSON 응답 강제)
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-pro',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: "application/json"
       }
