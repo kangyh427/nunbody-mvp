@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { query } = require('../config/database');
+const pool = require('../config/database');
 const { generateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -29,7 +29,7 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user exists
-    const existingUser = await query(
+    const existingUser = await pool.query(
       'SELECT id FROM users WHERE email = $1',
       [email]
     );
@@ -45,7 +45,7 @@ router.post('/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const result = await query(
+    const result = await pool.query(
       `INSERT INTO users (email, password, name) 
        VALUES ($1, $2, $3) 
        RETURNING id, email, name, created_at`,
@@ -93,7 +93,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Find user
-    const result = await query(
+    const result = await pool.query(
       'SELECT id, email, name, password, created_at FROM users WHERE email = $1',
       [email]
     );
@@ -118,7 +118,7 @@ router.post('/login', async (req, res) => {
     }
 
     // Update last login
-    await query(
+    await pool.query(
       'UPDATE users SET last_login = NOW() WHERE id = $1',
       [user.id]
     );
@@ -164,7 +164,7 @@ router.post('/verify', async (req, res) => {
     const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const result = await query(
+    const result = await pool.query(
       'SELECT id, email, name, created_at FROM users WHERE id = $1',
       [decoded.userId]
     );
