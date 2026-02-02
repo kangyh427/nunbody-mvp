@@ -1,54 +1,53 @@
 const { Pool } = require('pg');
-require('dotenv').config();
 
-// Railway는 DATABASE_URL 환경변수를 제공합니다
+// PostgreSQL 연결 풀 생성
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Test connection
+// 연결 테스트
 pool.on('connect', () => {
-  console.log('✅ Connected to PostgreSQL database');
+  console.log('✅ PostgreSQL 연결됨');
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Unexpected error on idle client', err);
-  process.exit(-1);
+  console.error('❌ PostgreSQL 연결 오류:', err);
 });
 
-// Query helper
-const query = async (text, params) => {
-  const start = Date.now();
-  try {
-    const res = await pool.query(text, params);
-    const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
-    return res;
-  } catch (error) {
-    console.error('Database query error:', error);
-    throw error;
+// ============================================
+// v4.1 자동 마이그레이션
+// 서버 시작 시 필요한 컬럼이 없으면 자동 추가
+// ============================================
+const runMigration = async () => {
+  const migrations = [
+    // v4.1: 사용자 신체 정보 컬럼
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS height_cm DECIMAL(5,1)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS weight_kg DECIMAL(5,1)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS age INTEGER`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(10)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`,
+  ];
+
+  console.log('🔄 DB 마이그레이션 시작...');
+  
+  for (const sql of migrations) {
+    try {
+      await pool.query(sql);
+    } catch (err) {
+      // 이미 존재하는 경우 등 오류 무시
+      if (!err.message.includes('already exists')) {
+        console.log('⚠️ 마이그레이션 스킵:', err.message);
+      }
+    }
   }
+  
+  console.log('✅ DB 마이그레이션 완료 (v4.1)');
 };
 
-// Transaction helper
-const transaction = async (callback) => {
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-    const result = await callback(client);
-    await client.query('COMMIT');
-    return result;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
-};
+// 마이그레이션 실행
+runMigration().catch(err => {
+  console.error('❌ 마이그레이션 오류:', err.message);
+});
 
-module.exports = {
-  pool,
-  query,
-  transaction
-};
+module.exports = pool;
