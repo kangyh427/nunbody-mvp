@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const photoRoutes = require('./routes/photos');
+const { authenticateToken } = require('./middleware/auth');
 
 const app = express();
 
@@ -24,7 +25,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/photos', photoRoutes);
+app.use('/api/photos', authenticateToken, photoRoutes);  // 인증 미들웨어 추가!
 
 const PORT = process.env.PORT || 3001;
 
