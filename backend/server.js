@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const photoRoutes = require('./routes/photos');
+const analysisRoutes = require('./routes/analysis');
 const { authenticateToken } = require('./middleware/auth');
 const pool = require('./config/database');
 
@@ -27,6 +28,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/photos', authenticateToken, photoRoutes);
+app.use('/api/analysis', authenticateToken, analysisRoutes);
 
 // 서버 시작 시 photos 테이블 자동 생성
 const initDatabase = async () => {
@@ -62,5 +64,6 @@ initDatabase().then(() => {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
     console.log('CORS enabled for localhost, vercel.app, and netlify.app domains');
+    console.log('🤖 Gemini AI analysis enabled');
   });
 });
