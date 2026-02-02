@@ -42,7 +42,7 @@ router.post('/analyze', async (req, res) => {
     // 이미지를 Base64로 변환
     const base64Image = await imageUrlToBase64(photo.photo_url);
 
-    // 정밀 분석 프롬프트 (얼굴 크기 기반 축척 보정 포함)
+    // 정밀 근육 분석 프롬프트 (v3.0 - 세부 근육별 분석)
     const prompt = `당신은 엘리트 스포츠 과학자이자 체형 분석 전문가입니다.
 
 ## 분석 지침
@@ -53,44 +53,157 @@ router.post('/analyze', async (req, res) => {
 - 이 기준으로 어깨 너비, 팔 길이 등을 추정하세요
 - 카메라 거리에 따른 왜곡을 보정하세요
 
-### 2. 분석 항목
-- 체형 분류: 외배엽(마름), 중배엽(근육질), 내배엽(통통) 또는 혼합형
-- 자세 평가: 척추 정렬, 어깨 높이 균형, 골반 틀어짐
-- 근육 발달도: 상체(어깨, 가슴, 팔), 코어, 하체(허벅지, 종아리)
-- 체지방 분포: 복부, 옆구리, 팔뚝 등
+### 2. 세부 근육 분석 (12개 근육군)
+각 근육을 1-10점으로 평가하고 구체적인 코멘트를 제공하세요:
+
+**상체 (Upper Body)**
+- 어깨 (Shoulders/삼각근): 전면, 측면, 후면 삼각근
+- 가슴 (Chest/대흉근): 상부, 중부, 하부 대흉근
+- 등 (Back/광배근): 광배근, 승모근, 능형근
+- 이두 (Biceps/이두근): 이두근 피크와 두께
+- 삼두 (Triceps/삼두근): 삼두근 말굽 모양
+
+**코어 (Core)**
+- 복근 (Abs/복직근): 식스팩 선명도
+- 옆구리 (Obliques/외복사근): 사선 라인
+
+**하체 (Lower Body)**
+- 대퇴사두 (Quads/대퇴사두근): 앞허벅지 볼륨
+- 햄스트링 (Hamstrings): 뒷허벅지
+- 둔근 (Glutes/둔근): 엉덩이 볼륨
+- 종아리 (Calves/비복근): 종아리 발달도
 
 ### 3. 응답 형식
 반드시 아래 JSON 구조로만 응답하세요:
 
 {
   "bodyType": "체형 분류 (예: 중배엽-외배엽 혼합형)",
-  "bodyTypeDescription": "체형에 대한 상세 설명",
+  "bodyTypeDescription": "체형에 대한 상세 설명 (2-3문장)",
+  "overallScore": 1-100,
   "estimatedMeasurements": {
     "shoulderWidth": "어깨 너비 추정 (cm)",
-    "waistEstimate": "허리 라인 평가",
-    "bodySymmetry": "좌우 대칭성 (1-10점)"
+    "chestCircumference": "가슴 둘레 추정 (cm)",
+    "waistCircumference": "허리 둘레 추정 (cm)",
+    "armCircumference": "팔 둘레 추정 (cm)",
+    "bodySymmetry": 1-10
   },
   "posture": {
     "score": 1-100,
     "spineAlignment": "척추 정렬 상태",
     "shoulderBalance": "어깨 균형",
-    "headPosition": "머리 위치 (전방/중립/후방)"
+    "headPosition": "머리 위치 (전방/중립/후방)",
+    "pelvisTilt": "골반 틀어짐 여부"
   },
   "muscleAnalysis": {
-    "upperBody": "상체 근육 발달도 (1-10)",
-    "core": "코어 근육 발달도 (1-10)",
-    "lowerBody": "하체 근육 발달도 (1-10)",
-    "overall": "전체 근육량 평가"
+    "upperBody": {
+      "overall": 1-10,
+      "shoulders": {
+        "score": 1-10,
+        "detail": "삼각근 발달 상태 설명"
+      },
+      "chest": {
+        "score": 1-10,
+        "detail": "대흉근 발달 상태 설명"
+      },
+      "back": {
+        "score": 1-10,
+        "detail": "광배근/승모근 발달 상태 설명"
+      },
+      "biceps": {
+        "score": 1-10,
+        "detail": "이두근 발달 상태 설명"
+      },
+      "triceps": {
+        "score": 1-10,
+        "detail": "삼두근 발달 상태 설명"
+      }
+    },
+    "core": {
+      "overall": 1-10,
+      "abs": {
+        "score": 1-10,
+        "detail": "복직근 발달 및 선명도 설명"
+      },
+      "obliques": {
+        "score": 1-10,
+        "detail": "외복사근 발달 상태 설명"
+      }
+    },
+    "lowerBody": {
+      "overall": 1-10,
+      "quads": {
+        "score": 1-10,
+        "detail": "대퇴사두근 발달 상태 설명"
+      },
+      "hamstrings": {
+        "score": 1-10,
+        "detail": "햄스트링 발달 상태 설명"
+      },
+      "glutes": {
+        "score": 1-10,
+        "detail": "둔근 발달 상태 설명"
+      },
+      "calves": {
+        "score": 1-10,
+        "detail": "비복근 발달 상태 설명"
+      }
+    }
   },
-  "overallScore": 1-100,
-  "strengths": ["강점1", "강점2", "강점3"],
-  "improvements": ["개선점1", "개선점2"],
+  "weakestMuscles": [
+    {
+      "rank": 1,
+      "muscle": "가장 약한 근육명 (한글)",
+      "englishName": "영문명",
+      "score": 1-10,
+      "reason": "약한 이유 설명",
+      "exercises": [
+        {"name": "운동1", "sets": "3세트", "reps": "12회", "tip": "운동 팁"},
+        {"name": "운동2", "sets": "3세트", "reps": "10회", "tip": "운동 팁"},
+        {"name": "운동3", "sets": "4세트", "reps": "15회", "tip": "운동 팁"}
+      ]
+    },
+    {
+      "rank": 2,
+      "muscle": "두번째로 약한 근육명",
+      "englishName": "영문명",
+      "score": 1-10,
+      "reason": "약한 이유 설명",
+      "exercises": [
+        {"name": "운동1", "sets": "3세트", "reps": "12회", "tip": "운동 팁"},
+        {"name": "운동2", "sets": "3세트", "reps": "10회", "tip": "운동 팁"},
+        {"name": "운동3", "sets": "4세트", "reps": "15회", "tip": "운동 팁"}
+      ]
+    },
+    {
+      "rank": 3,
+      "muscle": "세번째로 약한 근육명",
+      "englishName": "영문명",
+      "score": 1-10,
+      "reason": "약한 이유 설명",
+      "exercises": [
+        {"name": "운동1", "sets": "3세트", "reps": "12회", "tip": "운동 팁"},
+        {"name": "운동2", "sets": "3세트", "reps": "10회", "tip": "운동 팁"},
+        {"name": "운동3", "sets": "4세트", "reps": "15회", "tip": "운동 팁"}
+      ]
+    }
+  ],
+  "strongestMuscles": [
+    {"muscle": "강점 근육1", "score": 1-10, "detail": "강점 설명"},
+    {"muscle": "강점 근육2", "score": 1-10, "detail": "강점 설명"}
+  ],
   "recommendations": {
-    "exercises": ["추천 운동1", "추천 운동2", "추천 운동3"],
-    "focusAreas": ["집중 부위1", "집중 부위2"],
-    "weeklyPlan": "주간 운동 계획 제안"
+    "priorityFocus": "가장 집중해야 할 부위",
+    "weeklyPlan": {
+      "day1": "월요일 운동 계획",
+      "day2": "화요일 운동 계획",
+      "day3": "수요일 운동 계획",
+      "day4": "목요일 운동 계획",
+      "day5": "금요일 운동 계획"
+    },
+    "nutritionTip": "영양 섭취 조언",
+    "restTip": "휴식 및 회복 조언"
   },
-  "summary": "전체 분석 요약 (3-4문장, 격려하는 톤)"
+  "summary": "전체 분석 요약 (4-5문장, 격려하는 톤으로 강점을 먼저 언급하고 개선점 제안)"
 }`;
 
     const result = await model.generateContent([
@@ -117,8 +230,8 @@ router.post('/analyze', async (req, res) => {
       const cleanText = analysisText
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
-        .replace(/^[^{]*/, '')  // JSON 시작 전 텍스트 제거
-        .replace(/[^}]*$/, '')  // JSON 끝 후 텍스트 제거
+        .replace(/^[^{]*/, '')
+        .replace(/[^}]*$/, '')
         .trim();
       
       try {
@@ -129,37 +242,22 @@ router.post('/analyze', async (req, res) => {
         analysis = {
           bodyType: "분석 완료",
           bodyTypeDescription: "체형 분석이 완료되었습니다.",
-          estimatedMeasurements: {
-            shoulderWidth: "평균 범위",
-            waistEstimate: "보통",
-            bodySymmetry: 7
-          },
-          posture: {
-            score: 75,
-            spineAlignment: "양호",
-            shoulderBalance: "균형 잡힘",
-            headPosition: "중립"
-          },
+          overallScore: 70,
           muscleAnalysis: {
-            upperBody: 6,
-            core: 6,
-            lowerBody: 6,
-            overall: "보통 수준의 근육량"
+            upperBody: { overall: 6, shoulders: { score: 6, detail: "평균 수준" }, chest: { score: 6, detail: "평균 수준" }, back: { score: 6, detail: "평균 수준" }, biceps: { score: 6, detail: "평균 수준" }, triceps: { score: 6, detail: "평균 수준" } },
+            core: { overall: 5, abs: { score: 5, detail: "평균 수준" }, obliques: { score: 5, detail: "평균 수준" } },
+            lowerBody: { overall: 6, quads: { score: 6, detail: "평균 수준" }, hamstrings: { score: 6, detail: "평균 수준" }, glutes: { score: 6, detail: "평균 수준" }, calves: { score: 6, detail: "평균 수준" } }
           },
-          overallScore: 75,
-          strengths: ["꾸준한 기록", "좋은 자세 유지", "균형 잡힌 체형"],
-          improvements: ["코어 강화 추천", "유연성 향상"],
-          recommendations: {
-            exercises: ["플랭크", "스쿼트", "데드리프트"],
-            focusAreas: ["코어", "하체"],
-            weeklyPlan: "주 3-4회 전신 운동 추천"
-          },
-          summary: "전반적으로 균형 잡힌 체형을 유지하고 계십니다. 꾸준한 운동과 기록을 통해 더 좋은 결과를 얻을 수 있습니다."
+          weakestMuscles: [
+            { rank: 1, muscle: "코어", englishName: "Core", score: 5, reason: "코어 강화 필요", exercises: [{ name: "플랭크", sets: "3세트", reps: "60초", tip: "허리를 곧게 유지" }] }
+          ],
+          strongestMuscles: [{ muscle: "어깨", score: 7, detail: "양호한 발달" }],
+          summary: "전반적으로 균형 잡힌 체형입니다. 꾸준한 운동을 통해 더 좋은 결과를 얻을 수 있습니다."
         };
       }
     }
 
-    // 분석 결과를 DB에 저장 (user_id 체크 포함)
+    // 분석 결과를 DB에 저장
     await pool.query(
       'UPDATE photos SET analysis_data = $1 WHERE id = $2 AND user_id = $3',
       [JSON.stringify(analysis), photoId, userId]
@@ -182,13 +280,13 @@ router.post('/analyze', async (req, res) => {
   }
 });
 
-// 두 사진 비교 분석
+// 두 사진 비교 분석 (v3.0 - 근육별 % 변화 포함)
 router.post('/compare', async (req, res) => {
   try {
     const { photoId1, photoId2 } = req.body;
     const userId = req.user.id;
 
-    // 두 사진 정보 조회 (user_id 체크 포함)
+    // 두 사진 정보 조회
     const photosResult = await pool.query(
       'SELECT * FROM photos WHERE id IN ($1, $2) AND user_id = $3 ORDER BY taken_at ASC',
       [photoId1, photoId2, userId]
@@ -200,7 +298,7 @@ router.post('/compare', async (req, res) => {
 
     const [beforePhoto, afterPhoto] = photosResult.rows;
 
-    // Gemini Vision 모델 설정 (JSON 응답 강제)
+    // Gemini Vision 모델 설정
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.5-flash',
       generationConfig: {
@@ -214,7 +312,7 @@ router.post('/compare', async (req, res) => {
       imageUrlToBase64(afterPhoto.photo_url)
     ]);
 
-    // 정밀 비교 프롬프트
+    // 정밀 비교 분석 프롬프트 (v3.0 - 근육별 % 변화)
     const prompt = `당신은 엘리트 스포츠 과학자이자 체형 변화 분석 전문가입니다.
 
 ## 비교 분석 지침
@@ -224,56 +322,158 @@ router.post('/compare', async (req, res) => {
 - 카메라 거리 차이로 인한 왜곡을 보정하세요
 - 동일한 기준점으로 변화를 측정하세요
 
-### 2. 비교 항목
-첫 번째 사진(이전)과 두 번째 사진(이후)을 비교하여:
-- 체중 변화 추정 (근육량 vs 체지방 구분)
-- 각 부위별 변화 (어깨, 가슴, 복부, 팔, 허벅지)
-- 자세 변화
-- 근육 정의(definition) 변화
+### 2. 세부 근육별 변화 분석 (12개 근육군)
+각 근육의 Before/After 점수와 변화율(%)을 계산하세요:
+
+**상체**: 어깨, 가슴, 등, 이두, 삼두
+**코어**: 복근, 옆구리
+**하체**: 대퇴사두, 햄스트링, 둔근, 종아리
 
 ### 3. 응답 형식
 반드시 아래 JSON 구조로만 응답하세요:
 
 {
   "overallChange": "전반적인 변화 평가 (크게 개선/개선/유지/주의필요)",
-  "changeScore": -100에서 100 사이 점수 (양수=개선),
+  "changeScore": -100에서 100 사이 점수,
   "periodAnalysis": "두 사진 사이 예상 기간 및 변화 속도 평가",
-  "detailedChanges": {
-    "weight": {
-      "direction": "감소/유지/증가",
-      "estimate": "추정 변화량",
-      "composition": "근육량 vs 체지방 변화 분석"
+  "beforeScore": 1-100,
+  "afterScore": 1-100,
+  "muscleChanges": {
+    "shoulders": {
+      "before": 1-10,
+      "after": 1-10,
+      "changePercent": "-20% ~ +50% 형태로",
+      "detail": "어깨 변화 상세 설명"
     },
-    "upperBody": {
-      "shoulders": "어깨 변화",
-      "chest": "가슴 변화", 
-      "arms": "팔 변화",
-      "score": -10에서 10
+    "chest": {
+      "before": 1-10,
+      "after": 1-10,
+      "changePercent": "변화율",
+      "detail": "가슴 변화 상세 설명"
     },
-    "core": {
-      "abdomen": "복부 변화",
-      "waist": "허리 라인 변화",
-      "score": -10에서 10
+    "back": {
+      "before": 1-10,
+      "after": 1-10,
+      "changePercent": "변화율",
+      "detail": "등 변화 상세 설명"
     },
-    "lowerBody": {
-      "thighs": "허벅지 변화",
-      "calves": "종아리 변화",
-      "score": -10에서 10
+    "biceps": {
+      "before": 1-10,
+      "after": 1-10,
+      "changePercent": "변화율",
+      "detail": "이두 변화 상세 설명"
     },
-    "posture": {
-      "change": "자세 변화 설명",
-      "score": -10에서 10
+    "triceps": {
+      "before": 1-10,
+      "after": 1-10,
+      "changePercent": "변화율",
+      "detail": "삼두 변화 상세 설명"
+    },
+    "abs": {
+      "before": 1-10,
+      "after": 1-10,
+      "changePercent": "변화율",
+      "detail": "복근 변화 상세 설명"
+    },
+    "obliques": {
+      "before": 1-10,
+      "after": 1-10,
+      "changePercent": "변화율",
+      "detail": "옆구리 변화 상세 설명"
+    },
+    "quads": {
+      "before": 1-10,
+      "after": 1-10,
+      "changePercent": "변화율",
+      "detail": "대퇴사두 변화 상세 설명"
+    },
+    "hamstrings": {
+      "before": 1-10,
+      "after": 1-10,
+      "changePercent": "변화율",
+      "detail": "햄스트링 변화 상세 설명"
+    },
+    "glutes": {
+      "before": 1-10,
+      "after": 1-10,
+      "changePercent": "변화율",
+      "detail": "둔근 변화 상세 설명"
+    },
+    "calves": {
+      "before": 1-10,
+      "after": 1-10,
+      "changePercent": "변화율",
+      "detail": "종아리 변화 상세 설명"
     }
   },
-  "positiveChanges": ["긍정적 변화1", "긍정적 변화2", "긍정적 변화3"],
-  "areasToFocus": ["집중 필요 부분1", "집중 필요 부분2"],
-  "recommendations": {
-    "exercises": ["추천 운동1", "추천 운동2", "추천 운동3"],
-    "nutrition": "영양 조언",
-    "lifestyle": "생활습관 조언"
+  "topImproved": [
+    {
+      "rank": 1,
+      "muscle": "가장 많이 성장한 근육 (한글)",
+      "changePercent": "+30%",
+      "detail": "성장 상세 설명",
+      "keepDoingExercises": ["계속하면 좋은 운동1", "운동2"]
+    },
+    {
+      "rank": 2,
+      "muscle": "두번째로 성장한 근육",
+      "changePercent": "+20%",
+      "detail": "성장 상세 설명",
+      "keepDoingExercises": ["운동1", "운동2"]
+    },
+    {
+      "rank": 3,
+      "muscle": "세번째로 성장한 근육",
+      "changePercent": "+15%",
+      "detail": "성장 상세 설명",
+      "keepDoingExercises": ["운동1", "운동2"]
+    }
+  ],
+  "needsWork": [
+    {
+      "rank": 1,
+      "muscle": "더 노력이 필요한 근육 (한글)",
+      "changePercent": "+5% 또는 -10% 등",
+      "reason": "부족한 이유",
+      "recommendedExercises": [
+        {"name": "운동명", "sets": "3세트", "reps": "12회", "tip": "운동 팁"}
+      ]
+    },
+    {
+      "rank": 2,
+      "muscle": "두번째로 노력 필요한 근육",
+      "changePercent": "변화율",
+      "reason": "부족한 이유",
+      "recommendedExercises": [
+        {"name": "운동명", "sets": "3세트", "reps": "12회", "tip": "운동 팁"}
+      ]
+    }
+  ],
+  "bodyComposition": {
+    "fatChange": "체지방 변화 추정 (감소/유지/증가)",
+    "muscleChange": "근육량 변화 추정",
+    "detail": "체성분 변화 상세 설명"
   },
-  "encouragement": "개인화된 격려 메시지 (2-3문장)",
-  "summary": "전체 비교 분석 요약 (4-5문장)"
+  "posture": {
+    "beforeScore": 1-100,
+    "afterScore": 1-100,
+    "change": "자세 변화 설명"
+  },
+  "recommendations": {
+    "nextGoal": "다음 목표 제안",
+    "focusMuscles": ["집중해야 할 근육1", "근육2"],
+    "weeklyPlan": {
+      "day1": "월요일: 운동 계획",
+      "day2": "화요일: 운동 계획",
+      "day3": "수요일: 운동 계획",
+      "day4": "목요일: 운동 계획",
+      "day5": "금요일: 운동 계획"
+    },
+    "nutritionTip": "영양 조언",
+    "lifestyleTip": "생활습관 조언"
+  },
+  "encouragement": "개인화된 격려 메시지 (3-4문장, 구체적인 성과를 언급하며 동기부여)",
+  "summary": "전체 비교 분석 요약 (5-6문장, 객관적인 변화 데이터와 함께 격려)"
 }`;
 
     const result = await model.generateContent([
@@ -306,22 +506,23 @@ router.post('/compare', async (req, res) => {
           overallChange: "분석 완료",
           changeScore: 0,
           periodAnalysis: "두 사진을 비교 분석했습니다.",
-          detailedChanges: {
-            weight: { direction: "유지", estimate: "유의미한 변화 없음", composition: "안정적" },
-            upperBody: { shoulders: "유지", chest: "유지", arms: "유지", score: 0 },
-            core: { abdomen: "유지", waist: "유지", score: 0 },
-            lowerBody: { thighs: "유지", calves: "유지", score: 0 },
-            posture: { change: "유지", score: 0 }
+          muscleChanges: {
+            shoulders: { before: 6, after: 6, changePercent: "0%", detail: "유지" },
+            chest: { before: 6, after: 6, changePercent: "0%", detail: "유지" },
+            back: { before: 6, after: 6, changePercent: "0%", detail: "유지" },
+            biceps: { before: 6, after: 6, changePercent: "0%", detail: "유지" },
+            triceps: { before: 6, after: 6, changePercent: "0%", detail: "유지" },
+            abs: { before: 5, after: 5, changePercent: "0%", detail: "유지" },
+            obliques: { before: 5, after: 5, changePercent: "0%", detail: "유지" },
+            quads: { before: 6, after: 6, changePercent: "0%", detail: "유지" },
+            hamstrings: { before: 6, after: 6, changePercent: "0%", detail: "유지" },
+            glutes: { before: 6, after: 6, changePercent: "0%", detail: "유지" },
+            calves: { before: 6, after: 6, changePercent: "0%", detail: "유지" }
           },
-          positiveChanges: ["꾸준한 기록 유지", "안정적인 체형 관리"],
-          areasToFocus: ["전체적인 균형 유지"],
-          recommendations: {
-            exercises: ["현재 루틴 유지", "점진적 강도 증가"],
-            nutrition: "균형 잡힌 식단 유지",
-            lifestyle: "충분한 수면과 휴식"
-          },
-          encouragement: "꾸준히 기록하고 계시네요! 이런 노력이 곧 결과로 나타날 거예요.",
-          summary: "두 사진을 비교한 결과, 안정적인 상태를 유지하고 있습니다. 꾸준한 노력을 계속해주세요."
+          topImproved: [],
+          needsWork: [],
+          encouragement: "꾸준히 기록하고 계시네요!",
+          summary: "두 사진을 비교 분석했습니다."
         };
       }
     }
