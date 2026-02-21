@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/auth');
 const photoRoutes = require('./routes/photos');
 const analysisRoutes = require('./routes/analysis');
@@ -9,6 +11,32 @@ const { authenticateToken } = require('./middleware/auth');
 const pool = require('./config/database');
 
 const app = express();
+
+// 보안 헤더
+app.use(helmet());
+
+// 전체 API Rate Limit (IP당 15분에 100회)
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { success: false, message: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }
+});
+
+// 인증 관련 Rate Limit (IP당 15분에 10회 - 브루트포스 방지)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: '로그인 시도가 너무 많습니다. 15분 후 다시 시도해주세요.' }
+});
+
+// AI 분석 Rate Limit (IP당 1시간에 20회 - 비용 관리)
+const analysisLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  message: { success: false, message: '분석 요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }
+});
+
+app.use(generalLimiter);
 
 app.use(cors({
   origin: function(origin, callback) {
@@ -21,15 +49,15 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Nunbody API is running!' });
 });
 
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/photos', authenticateToken, photoRoutes);
-app.use('/api/analysis', authenticateToken, analysisRoutes);
+app.use('/api/analysis', authenticateToken, analysisLimiter, analysisRoutes);
 app.use('/api/support', authenticateToken, supportRoutes);
 
 // 서버 시작 시 photos 테이블 자동 생성
