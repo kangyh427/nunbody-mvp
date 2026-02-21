@@ -42,6 +42,25 @@ const runMigration = async () => {
     
     // v4.2: 히스토리 조회 성능을 위한 인덱스
     `CREATE INDEX IF NOT EXISTS idx_analysis_user_date ON analysis_history(user_id, created_at DESC)`,
+
+    // v4.3: 사용자 전화번호 컬럼
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`,
+
+    // v4.3: 고객문의 테이블
+    `CREATE TABLE IF NOT EXISTS support_inquiries (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      name VARCHAR(100) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      category VARCHAR(50) DEFAULT 'general',
+      subject VARCHAR(500) NOT NULL,
+      message TEXT NOT NULL,
+      photo_urls TEXT[],
+      status VARCHAR(20) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT NOW()
+    )`,
+
+    `CREATE INDEX IF NOT EXISTS idx_support_inquiries_user ON support_inquiries(user_id, created_at DESC)`,
   ];
 
   console.log('🔄 DB 마이그레이션 시작...');
@@ -59,7 +78,7 @@ const runMigration = async () => {
     }
   }
   
-  console.log('✅ DB 마이그레이션 완료 (v4.2)');
+  console.log('✅ DB 마이그레이션 완료 (v4.3)');
 };
 
 // 마이그레이션 실행

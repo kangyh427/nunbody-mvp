@@ -4,6 +4,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const photoRoutes = require('./routes/photos');
 const analysisRoutes = require('./routes/analysis');
+const supportRoutes = require('./routes/support');
 const { authenticateToken } = require('./middleware/auth');
 const pool = require('./config/database');
 
@@ -29,6 +30,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/photos', authenticateToken, photoRoutes);
 app.use('/api/analysis', authenticateToken, analysisRoutes);
+app.use('/api/support', authenticateToken, supportRoutes);
 
 // 서버 시작 시 photos 테이블 자동 생성
 const initDatabase = async () => {
